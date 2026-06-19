@@ -1,0 +1,10 @@
+{
+  "name": "Remix: Smart Transit System",
+  "description": "Secure real-time bus tracking and AI travel assistance platform featuring email-based authentication and personalized transit dashboards.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Public and private information about a passenger.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address (PII)." },
+        "photoURL": { "type": "string", "description": "URL to the user's profile picture." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the profile was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp when the profile was last updated." }
+      },
+      "required": ["email", "createdAt", "updatedAt"]
+    },
+    "Favorite": {
+      "title": "Favorite Bus",
+      "description": "A bus bookmarked by the user for quick access.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID of the user who owns this favorite." },
+        "busId": { "type": "string", "description": "Unique identifier of the bus." },
+        "busNumber": { "type": "string", "description": "Display number of the bus." },
+        "routeId": { "type": "string", "description": "ID of the route the bus is on." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when bookmarked." }
+      },
+      "required": ["userId", "busId", "busNumber", "createdAt"]
+    },
+    "SavedRoute": {
+      "title": "Saved Route",
+      "description": "A transit route saved by the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID of the user who saved the route." },
+        "routeName": { "type": "string", "description": "Custom name for the route." },
+        "stops": { "type": "array", "description": "List of stop IDs in the route." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when saved." }
+      },
+      "required": ["userId", "routeName", "stops", "createdAt"]
+    },
+    "History": {
+      "title": "Travel History",
+      "description": "Log of recent journeys or bus views.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID of the user." },
+        "busNumber": { "type": "string", "description": "The bus number interacted with." },
+        "type": { "type": "string", "enum": ["view", "ride"], "description": "Type of interaction." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of the event." }
+      },
+      "required": ["userId", "busNumber", "type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Passenger profiles."
+    },
+    "/favorites/{favoriteId}": {
+      "schema": "Favorite",
+      "description": "User-specific bookmarked buses."
+    },
+    "/savedRoutes/{routeId}": {
+      "schema": "SavedRoute",
+      "description": "User-specific transit routes."
+    },
+    "/history/{historyId}": {
+      "schema": "History",
+      "description": "User interaction logs."
+    }
+  }
+}

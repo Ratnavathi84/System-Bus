@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. DEFAULT DENY
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. PRIMITIVES
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 3. VALIDATION HELPERS
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt', 'updatedAt']) &&
+             data.keys().size() <= 5 &&
+             data.email is string && data.email.size() <= 256 &&
+             (data.get('displayName', '') == '' || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (data.get('photoURL', '') == '' || (data.photoURL is string && data.photoURL.size() <= 512)) &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidFavorite(data) {
+      return data.keys().hasAll(['userId', 'busId', 'busNumber', 'createdAt']) &&
+             data.keys().size() <= 5 &&
+             data.userId == request.auth.uid &&
+             data.busId is string && data.busId.size() <= 128 &&
+             data.busNumber is string && data.busNumber.size() <= 20 &&
+             (data.get('routeId', '') == '' || (data.routeId is string && data.routeId.size() <= 128)) &&
+             data.createdAt == request.time;
+    }
+
+    function isValidSavedRoute(data) {
+      return data.keys().hasAll(['userId', 'routeName', 'stops', 'createdAt']) &&
+             data.keys().size() <= 4 &&
+             data.userId == request.auth.uid &&
+             data.routeName is string && data.routeName.size() <= 100 &&
+             data.stops is list && data.stops.size() <= 50 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidHistory(data) {
+      return data.keys().hasAll(['userId', 'busNumber', 'type', 'createdAt']) &&
+             data.keys().size() <= 4 &&
+             data.userId == request.auth.uid &&
+             data.busNumber is string && data.busNumber.size() <= 20 &&
+             data.type in ['view', 'ride'] &&
+             data.createdAt == request.time;
+    }
+
+    // 4. COLLECTION MATCHES
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().email == existing().email &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+    }
+
+    match /favorites/{favoriteId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(favoriteId) && isValidFavorite(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /savedRoutes/{routeId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(routeId) && isValidSavedRoute(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /history/{historyId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(historyId) && isValidHistory(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}
